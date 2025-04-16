@@ -1,91 +1,110 @@
-# Mapping the Pine Island Galcier
+# OOSA Assignment 2025 (Exam No. B273049)
+This repository contains Python tools for processing and analysing elevation data from NASA's Land, Vegetation, and Ice Sensor (LVIS), specifically focusing on Level 1B datasets from 2009 and 2015 over Pine Island Glacier in Antarctica. 
 
-The task was to develop a python script, capable of comparing elevation change between two datasets. In this case using LiDAR Data to map data from LVIS (Land, Vegetation and Ice Sensor) between 2009 and 2015. 
+The toolkit enables reading raw LVIS waveform data, processing it into raster digital elevation models (DEMs), and generating derived graphical products.
 
-## Geting Started
+## Task 1: Plot an LVIS Waveform
 
-These instructions will get you a copy of the project on your personal device to run and test the code.
+#### Example command
 
-### Prerequisites
-All of the libraries used in this project are already installed in Edinburgh University Scotia environment.
-If you do encounter any errors you can install them using the following commands.
-```
-pip install <library_name>
-```
-
-### Installing
-To install the project, you need download the zip file.
-Then, navigate to the B270161 directory using the cd command
-
-## Layout of the project
-```
-│── src/
-│   │── handleTiff.py
-│   │── processLVIS.pyV
-│   │── tiffEample.py
-│── display.py
-│── lvisClass.py
-│── README.md
-│── Task1.py
-│── Task2.py
-│── Task3.py
-│── Task5.py
-│── LVIS2009/
-│   │── Datasets/
-│   ├── GeoTIFF/
-│── LVIS2015/
-│   ├── Datasets/
-│   ├── GeoTIFF/
-```
-The src directory contains the scripts were provided.
-The display.py script is used to display the data. 
-The README.md file contains the instructions for running the code.
-Task 1 - 5 are the scripts that were used to process the data and where the code sould be run from.
-The LVIS2009 and LVIS2015 directories are where the scripts will export the datasets and GeoTIF to.
-
-### Running the code
-To run the code you will need to use a python command line parser for each task. Note: the filename extension and any of the other arguments below can be changed to suit your preference.
-
-**For Task 1, run the following command:**
-```
-python Task1.py --filename /geos/netdata/oosa/assignment/lvis/2015/ILVIS1B_AQ2015_1012_R1605_070498.h5 --waveform 30 
-```
-This will run the code in the Task1.py file and display the following output:
-
-![Alt text](Output_Images/Waveform.png)
-
-A single waveform which shows the intensity of the laser pulse over time. The x-axis is time in nanoseconds and the y-axis is the height from the sensor
-
-**For Task 2, run the following command:**
-```
-python Task2.py --filename  /geos/netdata/oosa/assignment/lvis/2009/ILVIS1B_AQ2009_1020_R1408_061398.h5 --res 30 --year 2009
-```
-This will run the code in the Task2.py file and display the following output: 
-
-![Alt text](Output_Images/PIG_2009_258.00_261.00_-75.40_-74.60.png)
-
-A single proccessed image of the PIG in 2009, showing the elevation of the glacier. 
-
-**For Task 3, run the following command:**
+Run from the **tasks** directory:
 
 ```
-python Task3.py --folder /geos/netdata/oosa/assignment/lvis/2015 --res 30 --year 2015
+python task1.py -f /geos/netdata/oosa/assignment/lvis/2009/ILVIS1B_AQ2009_1020_R1408_058456.h5
 ```
-This will run the code in the Task3.py file and display the following output:
+Behaviour:
+- If no index is provided (-i argument omitted), the script will:
+  1. Display the valid waveform index range (e.g., 0 to N-1)
+  2. Prompt you to enter an index interactively:
+        ```text
+        File contains waveforms with indices 0 to 1247
+        Enter waveform index (0-1247) or 'q' to quit: 
+        ```
+  3. Validate your input against the available range
 
+Example with index specified:
 
-![Alt text](Output_Images/PIG_Elevation_2009_259.80_261.00_-75.23_-75.15.png) ![Alt text](Output_Images/PIG_Elevation_2015_259.80_261.00_-75.23_-75.15.png)
-
-The small study site of the PIG in 2009 and 2015, showing the elevation of the glacier with interpoaltion between the missing data points
-
-**For Task 5, run the following command:**
 ```
-python Task5.py 
+python task1.py -f [FILEPATH] -i 15 # Directly plots waveform 15
 ```
-This will run the code in the Task4.py file and display the following output:
 
-![Alt text](Output_Images/Elevation_Change.png)
+#### Example output
 
-Elevation change between 2009 and 2015, showing the difference in elevation between the two years. 
-### Version
-Python 3.11.9
+<img src="./plots/waveform_15.png" alt="Example LVIS Waveform" width="70%"/>
+
+
+## Task 2: Create a DEM for a specific flight line
+
+#### Example command
+
+```
+python task2.py -f /geos/netdata/oosa/assignment/lvis/2009/ILVIS1B_AQ2009_1020_R1408_058456.h5 -s 20 -r 30
+```
+
+## Task 3: Process an annual dataset
+
+#### Example command for 2009 data
+
+```
+python task3.py -y 2009 -s 20 -r 100
+```
+
+#### Example command for 2015 data
+
+```
+python task3.py -y 2015 -s 20 -r 100
+```
+
+#### Example outputs
+
+- 2009
+
+<img src="./plots/DEM_combined_mosaic_2009.png" alt="Combined Mosaic 2009" width="70%"/>
+
+
+- 2015
+
+<img src="./plots/DEM_combined_mosaic_2015.png" alt="Combined Mosaic 2015" width="70%"/>
+
+## Task 4: Gap-filling
+
+#### Example command for 2009 data
+
+```
+python task4.py -y 2009
+```
+
+#### Gap filling with different parameters
+
+```
+python task4.py -y 2009 -md 30 -s 5
+```
+
+
+#### Example outputs
+
+- 2009
+
+<img src="./plots/DEM_filled_mosaic_2009.png" alt="Filled Mosaic 2009" width="70%"/>
+
+- 2015
+
+<img src="./plots/DEM_filled_mosaic_2015.png" alt="Filled Mosaic 2015" width="70%"/>
+
+## Task 5: Estimate change in elevation
+
+#### Example command - Basic Usage
+
+```
+python task5.py -d1 processed_data/filled_mosaic_2009.tif -d2 processed_data/filled_mosaic_2015.tif
+```
+
+#### Example command - With custom output
+
+```
+python task5.py -d1 processed_data/filled_mosaic_2009.tif -d2 processed_data/filled_mosaic_2015.tif -o change_map.tif
+```
+
+#### Example output
+
+<img src="./plots/DEM_elevation_change.png" alt="Elevation Change (2009-2015)" width="70%"/>
