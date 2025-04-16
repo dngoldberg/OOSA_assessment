@@ -1,84 +1,47 @@
-
-
-'''
-A class to handle geotiffs
-'''
-
-#######################################################
-# import necessary packages
-
-from pyproj import Proj, transform # package for reprojecting data
-from osgeo import gdal             # package for handling geotiff data
-from osgeo import osr              # package for handling projection information
-from gdal import Warp
+from osgeo import gdal, osr
 import numpy as np
 
-
-#######################################################
-
-class tiffHandle():
-  '''
-  Class to handle geotiff files
-  '''
-
-  ########################################
-
-  def __init__(self,filename):
+class TiffHandle:
     '''
-    Class initialiser
-    Does nothing as this is only an example
+    Class to handle GeoTIFF file writing with a flexible pixel size based on X and Y extent.
     '''
 
+    def writeTiff(self, data, filename="output.tif", epsg=3031, transform=None):
+        '''
+        Write a GeoTIFF with a specified geotransform.
+        '''
+        if transform is None or len(transform) != 6:
+            raise ValueError("Transform must be a six-element sequence")
 
-  ########################################
+        nY, nX = data.shape
+        print(f"Original data shape: {nY} x {nX}")
 
-  def writeTiff(self,data,filename="chm.tif",epsg=27700):
-    '''
-    Write a geotiff from a raster layer
-    '''
+        # Create an output array filled with NoData value
+        output_data = np.full((nY, nX), -999, dtype=np.float32)
 
-    # set geolocation information (note geotiffs count down from top edge in Y)
-    geotransform = (self.minX, self.res, 0, self.maxY, 0, -1*self.res)
+        # Copy input data into the output array
+        output_data[:nY, :nX] = data
 
-    # load data in to geotiff object
-    dst_ds = gdal.GetDriverByName('GTiff').Create(filename, self.nX, self.nY, 1, gdal.GDT_Float32)
+        print(f"Output data shape: {nY} x {nX}")
 
-    dst_ds.SetGeoTransform(geotransform)    # specify coords
-    srs = osr.SpatialReference()            # establish encoding
-    srs.ImportFromEPSG(epsg)                # WGS84 lat/long
-    dst_ds.SetProjection(srs.ExportToWkt()) # export coords to file
-    dst_ds.GetRasterBand(1).WriteArray(data)  # write image to the raster
-    dst_ds.GetRasterBand(1).SetNoDataValue(-999)  # set no data value
-    dst_ds.FlushCache()                     # write to disk
-    dst_ds = None
+        # Define the geotransform from the provided transform
+        geotransform = transform
+        print(f"Geotransform: {geotransform}")
 
-    print("Image written to",filename)
-    return
+        # Create the GeoTIFF file
+        dst_ds = gdal.GetDriverByName('GTiff').Create(filename, nX, nY, 1, gdal.GDT_Float32)
+        dst_ds.SetGeoTransform(geotransform)
 
+        # Set spatial reference
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(epsg)
+        dst_ds.SetProjection(srs.ExportToWkt())
 
-  ########################################
+        # Write the data to the file
+        dst_ds.GetRasterBand(1).WriteArray(output_data)
+        dst_ds.GetRasterBand(1).SetNoDataValue(-999)
+        dst_ds.FlushCache()
 
-  def readTiff(self,filename):
-    '''
-    Read a geotiff in to RAM
-    '''
-
-    # open a dataset object
-    ds=gdal.Open(filename)
-    # could use gdal.Warp to reproject if wanted?
-
-    # read data from geotiff object
-    self.nX=ds.RasterXSize             # number of pixels in x direction
-    self.nY=ds.RasterYSize             # number of pixels in y direction
-    # geolocation tiepoint
-    transform_ds = ds.GetGeoTransform()# extract geolocation information
-    self.xOrigin=transform_ds[0]       # coordinate of x corner
-    self.yOrigin=transform_ds[3]       # coordinate of y corner
-    self.pixelWidth=transform_ds[1]    # resolution in x direction
-    self.pixelHeight=transform_ds[5]   # resolution in y direction
-    # read data. Returns as a 2D numpy array
-    self.data=ds.GetRasterBand(1).ReadAsArray(0,0,self.nX,self.nY)
-
-
-#######################################################
+        dst_ds = None  # Close file
+        print(f"Image written to {filename}")
 
