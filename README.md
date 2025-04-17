@@ -1,174 +1,114 @@
-# 🌍 Pine Island Glacier LVIS DEM Processing (OOSA Final Assessment 2024)
+## OOSA Final Assignment.
 
-This project processes NASA LVIS waveform LiDAR data to generate Digital Elevation Models (DEMs) for Pine Island Glacier (PIG) from 2009 and 2015, identify elevation changes, and estimate ice volume loss. The workflow includes waveform visualization, tiling, DEM generation, optional gap filling, and change detection.
+This library uses the raw Land, Vegetetaion and Ice Sensor (LVIS) data ([link](https://lvis.gsfc.nasa.gov/Data/Data_Download.html)) via _geosnetdata_, from Operation IceBridge to process and create raster DEMs from the 20th October 2009 and 17th October 2015. **This repository relies on a connection to netdata.**
 
----
-
-## 📁 Project Structure
+**The repository is organised as follows:**
 
 ```
-final-assessment-azraqoth/
-├── additional/
-│   ├── task1_plot_waveform.py
-│   ├── task234_create_dem.py
-│   ├── task5_calculate_DEM.py
-│   ├── file_selection.py
-│   ├── tile_processor.py
-│   ├── lvis_dem_tools.py
-│   └── data/
-│       ├── bound2.geojson
-│       ├── valid_2009_files.txt
-│       └── valid_2015_files.txt
-│
-├── src/
-│   ├── processLVIS.py
-│   ├── lvisClass.py
-│   ├── handleTiff.py
-│   └── lvisExample.py
-│
-├── figures/
-│   ├── task_1.png
-│   ├── task_2.png
-│   ├── task_3.png
-│   ├── task_4.png
-│   └── task_5.png
-│
-├── requirements.txt
-└── README.md
+│── source/
+│   │── lvisClass.py
+│   │── lvisTiff.py
+│   │── processLVIS.py
+│   │── handleTiff.py
+│── static/
+│   │── task1_image.png
+│   │── task2_image.png
+│── task1.py
+│── task2.py
+│── task3attempt.py
+│── task3bound.py
+│── task3folderloop.py
+│── task4.py
+│── task5.py?
+│── README.md
+```
+-	**source:** Contains multiple files that are required to complete the specified tasks.
+-	**static:** A folder where the images for the readme are stored. 
+-	**Tasks:** run each specifed task or a component of it.
+-	README file.
+
+When the tasks are run, additonal folders are created:
+-    **Outputs/** stores final .tif and .png outputs.
+-   **Data2009/** stores temporary files.
+
+-----
+### Libraries Required: 
+The follwowing libraries are required for the scripts to run:
+-	NumPy: For array operations such as data cleaning, transformation and aggregation.
+-	h5py: to read and write HDF5 files. 
+-	Matplotlib: For formatting and displaying the plots.
+-	os: For file system operations.
+-	rasterio (and rasterio.merge): For reading, writing and handling rasters.
+-	osgeo (gdal and osr): For handling geotiff data and managing projections.
+-	pyproj (Transformer): For coordinate system transformations.
+-	Glob (Glob): For iterating through multiple files in a folder.
+-	argparse: For handling command line options.
+-	Tracemalloc: For tracking memory during script use.
+
+Incase any of the libraries need to be installed:
+```
+    pip install [library]
+```
+-----------
+### Running The Code:
+**Install the github repo**
+
+To clone the repository:
+```
+    git clone git@github.com:s2762697/OOSA_code.git
 ```
 
----
+**Task 1:**
 
-## ⚙️ Setup
+To run:
+```
+    python task1.py -f /geos/netdata/oosa/assignment/lvis/2009/ILVIS1B_AQ2009_1020_R1408_049700.h5 --i 24
+```  
+1. This script reads the specifed file and creates a plot of _one waves'_ full LiDAR return data (amplitude). 
+2. If chosen index contains data, this saves the plot to the Output folder.
 
-Install required packages:
+This will display the following output:
 
-```bash
-pip install -r requirements.txt
+![Alt text](static/task1_image.png)
+
+**Task 2:**
+
+To run:
+```
+    python task2.py -f /geos/netdata/oosa/assignment/lvis/2009/ILVIS1B_AQ2009_1020_R1408_058456.h5 --res 30 --o 'Example.tif'
+
+```
+1. This script creates subset tiles and loops through (for one file) and converts the tiles into rasters of a chosen resolution.
+2. These rasters are stored in a folder (Data2009) and then merged into one TIF file.
+
+This will display the following output:
+
+![Alt text](static/task2_image.png)
+
+**Task 3:**
+
+task3folderloop = *Don't run* this file as it is massive.
+
+task3bound = The bounds are working for a chosen .h5 file.
+
+task3attempt = Attempt to combine - runs but doesnt produce an appropriate output.
+
+To run:
+```
+    python task3boundspy -f /geos/netdata/oosa/assignment/lvis/2009/ILVIS1B_AQ2009_1020_R1408_058456.h5 --res 30 --o 'Example.tif'
+
 ```
 
----
+**Task 4:**
 
-## 🧪 File Selection
+Pseudo code is provided for this task and would use a function called fill_gaps from rasterio.
+The script currently has bugs and cannot identify the areas of no data.
 
-Before any DEM processing, generate the list of `.h5` files that intersect your AOI:
+**Task 5:**
 
-```bash
-python additional/file_selection.py --folder additional/data
-```
+Pseudo code is provided for this task and would create a class which includes the functions:
+-   elevation change
+-   calculate volume
+-   quanitfy change
 
-Creates `valid_2009_files.txt` or `valid_2015_files.txt` in the `data/` folder using `bound2.geojson` (EPSG:3031).
-
----
-
-## 🛰 Task 1 – Plot LVIS Waveform
-
-**Description**: Visualize waveform data from an individual LVIS shot to understand intensity patterns and locate ground returns.  
-**Input**: `.h5` file, waveform index  
-**Output**: `.png` plot of intensity vs. elevation
-
-```bash
-python additional/task1_plot_waveform.py additional/data/ILVIS1B_*.h5 1000 --output figures/task_1.png
-```
-
-![Task 1](figures/task_1.png)
-
----
-
-## 🧱 Task 2 – DEM from a Single File (Tiled Output)
-
-**Description**: Processes a single `.h5` file, generates elevation data, and outputs as multiple tiled GeoTIFFs with projection EPSG:3031.  
-**Input**: One LVIS file, spatial resolution, number of tiles  
-**Output**: Merged DEM raster for the selected file
-
-```bash
-python additional/task234_create_dem.py \
-  --folder additional/data \
-  --list valid_2015_files.txt \
-  --test_files ILVIS1B_*.h5 \
-  --res 50 \
-  --tiles 20 \
-  --output_dir output/output_tiles \
-  --output output/task2.tif
-```
-
-![Task 2](figures/task_2.png)
-
----
-
-## 🗺 Task 3 – Full DEM via Tiling and Merging
-
-**Description**: Automatically tiles, processes, and merges all valid LVIS files into one complete DEM for the entire AOI.  
-**Input**: List of valid `.h5` files from file selection step  
-**Output**: Merged full-area DEM GeoTIFF
-
-```bash
-python additional/task234_create_dem.py \
-  --folder additional/data \
-  --list valid_2015_files.txt \
-  --res 50 \
-  --tiles 20 \
-  --output_dir output/output_tiles \
-  --output output/task3.tif
-```
-
-![Task 3](figures/task_3.png)
-
----
-
-## 🧩 Task 4 – Gap-Filled DEM
-
-**Description**: Fills missing or sparse regions using a mean filter applied over each tile’s 5×5 neighborhood.  
-**Input**: Same as Task 3 with `--fill` flag  
-**Output**: Smooth, gap-filled DEM ready for analysis
-
-```bash
-python additional/task234_create_dem.py \
-  --folder additional/data \
-  --list valid_2009_files.txt \
-  --res 50 \
-  --tiles 20 \
-  --fill \
-  --output_dir output/output_tiles \
-  --output output/task4.tif
-```
-
-![Task 4](figures/task_4.png)
-
----
-
-## 🧊 Task 5 – Elevation Change and Volume Loss
-
-**Description**: Calculates elevation change between 2009 and 2015 DEMs and estimates total volume difference over the AOI.  
-**Input**: Two DEMs (2009, 2015)  
-**Output**: Elevation difference GeoTIFF and volume loss value in cubic meters
-
-```bash
-python additional/task5_calculate_DEM.py \
-  --folder output \
-  --output_diff output/task5_change.tif
-```
-
-![Task 5](figures/task_5.png)
-
----
-
-## 🔧 CLI Options Summary
-
-- `--folder`: Folder containing LVIS `.h5` files
-- `--list`: Text file of valid filenames (e.g., `valid_2015_files.txt`)
-- `--test_files`: Run only on selected `.h5` files
-- `--res`: DEM resolution (in meters)
-- `--tiles`: Number of tiles per row/column
-- `--fill`: Apply mean filter for gap-filling
-- `--output_dir`: Directory for intermediate tile GeoTIFFs
-- `--output`: Final merged DEM filename
-- `--output_diff`: Output elevation change raster (Task 5)
-
-
----
-
-## 📝 License
-
-Created for academic use in the 2024 OOSA final assessment.
-
+This code is run with Python 3.11.9
