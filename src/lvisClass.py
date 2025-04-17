@@ -42,13 +42,16 @@ class lvisData(object):
     # determine how many bins
     self.nBins=f['RXWAVE'].shape[1]
     # read coordinates for subsetting
-    lon0=np.array(f['LON0'])       # longitude of waveform top
-    lat0=np.array(f['LAT0'])       # lattitude of waveform top
-    lonN=np.array(f['LON'+str(self.nBins-1)]) # longitude of waveform bottom
-    latN=np.array(f['LAT'+str(self.nBins-1)]) # lattitude of waveform bottom
+    lon0=np.array(f['LON0'][:])       # longitude of waveform top
+    lat0=np.array(f['LAT0'][:])       # lattitude of waveform top
+    lonN=np.array(f['LON'+str(self.nBins-1)][:]) # longitude of waveform bottom
+    latN=np.array(f['LAT'+str(self.nBins-1)][:]) # lattitude of waveform bottom
     # find a single coordinate per footprint
     tempLon=(lon0+lonN)/2.0
     tempLat=(lat0+latN)/2.0
+
+    # Convert longitudes from 0–360 to -180–180 if needed
+    tempLon = np.where(tempLon > 180, tempLon - 360, tempLon)
 
     # write out bounds and leave if needed
     if(onlyBounds):
@@ -57,7 +60,7 @@ class lvisData(object):
       self.bounds=self.dumpBounds()
       self.nWaves=0
       return
-
+    
     # dertermine which are in region of interest
     useInd=np.where((tempLon>=minX)&(tempLon<maxX)&(tempLat>=minY)&(tempLat<maxY))
     if(len(useInd)>0):
@@ -76,7 +79,7 @@ class lvisData(object):
     # load sliced arrays, to save RAM
     self.lfid=np.array(f['LFID'][useInd])          # LVIS flight ID number
     self.lShot=np.array(f['SHOTNUMBER'][useInd])   # the LVIS shot number, a label
-    self.waves=np.array(f['RXWAVE'][useInd])      # the recieved waveforms. The data
+    self.waves=np.array(f['RXWAVE'][useInd])       # the recieved waveforms. The data
     self.nBins=self.waves.shape[1]
     # these variables will be converted to easier variables
     self.lZN=np.array(f['Z'+str(self.nBins-1)][useInd])       # The elevation of the waveform bottom

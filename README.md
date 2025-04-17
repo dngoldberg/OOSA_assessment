@@ -1,110 +1,174 @@
-# OOSA Assignment 2025 (Exam No. B273049)
-This repository contains Python tools for processing and analysing elevation data from NASA's Land, Vegetation, and Ice Sensor (LVIS), specifically focusing on Level 1B datasets from 2009 and 2015 over Pine Island Glacier in Antarctica. 
+# 🌍 Pine Island Glacier LVIS DEM Processing (OOSA Final Assessment 2024)
 
-The toolkit enables reading raw LVIS waveform data, processing it into raster digital elevation models (DEMs), and generating derived graphical products.
+This project processes NASA LVIS waveform LiDAR data to generate Digital Elevation Models (DEMs) for Pine Island Glacier (PIG) from 2009 and 2015, identify elevation changes, and estimate ice volume loss. The workflow includes waveform visualization, tiling, DEM generation, optional gap filling, and change detection.
 
-## Task 1: Plot an LVIS Waveform
+---
 
-#### Example command
-
-Run from the **tasks** directory:
+## 📁 Project Structure
 
 ```
-python task1.py -f /geos/netdata/oosa/assignment/lvis/2009/ILVIS1B_AQ2009_1020_R1408_058456.h5
-```
-Behaviour:
-- If no index is provided (-i argument omitted), the script will:
-  1. Display the valid waveform index range (e.g., 0 to N-1)
-  2. Prompt you to enter an index interactively:
-        ```text
-        File contains waveforms with indices 0 to 1247
-        Enter waveform index (0-1247) or 'q' to quit: 
-        ```
-  3. Validate your input against the available range
-
-Example with index specified:
-
-```
-python task1.py -f [FILEPATH] -i 15 # Directly plots waveform 15
-```
-
-#### Example output
-
-<img src="./plots/waveform_15.png" alt="Example LVIS Waveform" width="70%"/>
-
-
-## Task 2: Create a DEM for a specific flight line
-
-#### Example command
-
-```
-python task2.py -f /geos/netdata/oosa/assignment/lvis/2009/ILVIS1B_AQ2009_1020_R1408_058456.h5 -s 20 -r 30
-```
-
-## Task 3: Process an annual dataset
-
-#### Example command for 2009 data
-
-```
-python task3.py -y 2009 -s 20 -r 100
+final-assessment-azraqoth/
+├── additional/
+│   ├── task1_plot_waveform.py
+│   ├── task234_create_dem.py
+│   ├── task5_calculate_DEM.py
+│   ├── file_selection.py
+│   ├── tile_processor.py
+│   ├── lvis_dem_tools.py
+│   └── data/
+│       ├── bound2.geojson
+│       ├── valid_2009_files.txt
+│       └── valid_2015_files.txt
+│
+├── src/
+│   ├── processLVIS.py
+│   ├── lvisClass.py
+│   ├── handleTiff.py
+│   └── lvisExample.py
+│
+├── figures/
+│   ├── task_1.png
+│   ├── task_2.png
+│   ├── task_3.png
+│   ├── task_4.png
+│   └── task_5.png
+│
+├── requirements.txt
+└── README.md
 ```
 
-#### Example command for 2015 data
+---
 
-```
-python task3.py -y 2015 -s 20 -r 100
-```
+## ⚙️ Setup
 
-#### Example outputs
+Install required packages:
 
-- 2009
-
-<img src="./plots/DEM_combined_mosaic_2009.png" alt="Combined Mosaic 2009" width="70%"/>
-
-
-- 2015
-
-<img src="./plots/DEM_combined_mosaic_2015.png" alt="Combined Mosaic 2015" width="70%"/>
-
-## Task 4: Gap-filling
-
-#### Example command for 2009 data
-
-```
-python task4.py -y 2009
+```bash
+pip install -r requirements.txt
 ```
 
-#### Gap filling with different parameters
+---
 
-```
-python task4.py -y 2009 -md 30 -s 5
-```
+## 🧪 File Selection
 
+Before any DEM processing, generate the list of `.h5` files that intersect your AOI:
 
-#### Example outputs
-
-- 2009
-
-<img src="./plots/DEM_filled_mosaic_2009.png" alt="Filled Mosaic 2009" width="70%"/>
-
-- 2015
-
-<img src="./plots/DEM_filled_mosaic_2015.png" alt="Filled Mosaic 2015" width="70%"/>
-
-## Task 5: Estimate change in elevation
-
-#### Example command - Basic Usage
-
-```
-python task5.py -d1 processed_data/filled_mosaic_2009.tif -d2 processed_data/filled_mosaic_2015.tif
+```bash
+python additional/file_selection.py --folder additional/data
 ```
 
-#### Example command - With custom output
+Creates `valid_2009_files.txt` or `valid_2015_files.txt` in the `data/` folder using `bound2.geojson` (EPSG:3031).
 
+---
+
+## 🛰 Task 1 – Plot LVIS Waveform
+
+**Description**: Visualize waveform data from an individual LVIS shot to understand intensity patterns and locate ground returns.  
+**Input**: `.h5` file, waveform index  
+**Output**: `.png` plot of intensity vs. elevation
+
+```bash
+python additional/task1_plot_waveform.py additional/data/ILVIS1B_*.h5 1000 --output figures/task_1.png
 ```
-python task5.py -d1 processed_data/filled_mosaic_2009.tif -d2 processed_data/filled_mosaic_2015.tif -o change_map.tif
+
+![Task 1](figures/task_1.png)
+
+---
+
+## 🧱 Task 2 – DEM from a Single File (Tiled Output)
+
+**Description**: Processes a single `.h5` file, generates elevation data, and outputs as multiple tiled GeoTIFFs with projection EPSG:3031.  
+**Input**: One LVIS file, spatial resolution, number of tiles  
+**Output**: Merged DEM raster for the selected file
+
+```bash
+python additional/task234_create_dem.py \
+  --folder additional/data \
+  --list valid_2015_files.txt \
+  --test_files ILVIS1B_*.h5 \
+  --res 50 \
+  --tiles 20 \
+  --output_dir output/output_tiles \
+  --output output/task2.tif
 ```
 
-#### Example output
+![Task 2](figures/task_2.png)
 
-<img src="./plots/DEM_elevation_change.png" alt="Elevation Change (2009-2015)" width="70%"/>
+---
+
+## 🗺 Task 3 – Full DEM via Tiling and Merging
+
+**Description**: Automatically tiles, processes, and merges all valid LVIS files into one complete DEM for the entire AOI.  
+**Input**: List of valid `.h5` files from file selection step  
+**Output**: Merged full-area DEM GeoTIFF
+
+```bash
+python additional/task234_create_dem.py \
+  --folder additional/data \
+  --list valid_2015_files.txt \
+  --res 50 \
+  --tiles 20 \
+  --output_dir output/output_tiles \
+  --output output/task3.tif
+```
+
+![Task 3](figures/task_3.png)
+
+---
+
+## 🧩 Task 4 – Gap-Filled DEM
+
+**Description**: Fills missing or sparse regions using a mean filter applied over each tile’s 5×5 neighborhood.  
+**Input**: Same as Task 3 with `--fill` flag  
+**Output**: Smooth, gap-filled DEM ready for analysis
+
+```bash
+python additional/task234_create_dem.py \
+  --folder additional/data \
+  --list valid_2009_files.txt \
+  --res 50 \
+  --tiles 20 \
+  --fill \
+  --output_dir output/output_tiles \
+  --output output/task4.tif
+```
+
+![Task 4](figures/task_4.png)
+
+---
+
+## 🧊 Task 5 – Elevation Change and Volume Loss
+
+**Description**: Calculates elevation change between 2009 and 2015 DEMs and estimates total volume difference over the AOI.  
+**Input**: Two DEMs (2009, 2015)  
+**Output**: Elevation difference GeoTIFF and volume loss value in cubic meters
+
+```bash
+python additional/task5_calculate_DEM.py \
+  --folder output \
+  --output_diff output/task5_change.tif
+```
+
+![Task 5](figures/task_5.png)
+
+---
+
+## 🔧 CLI Options Summary
+
+- `--folder`: Folder containing LVIS `.h5` files
+- `--list`: Text file of valid filenames (e.g., `valid_2015_files.txt`)
+- `--test_files`: Run only on selected `.h5` files
+- `--res`: DEM resolution (in meters)
+- `--tiles`: Number of tiles per row/column
+- `--fill`: Apply mean filter for gap-filling
+- `--output_dir`: Directory for intermediate tile GeoTIFFs
+- `--output`: Final merged DEM filename
+- `--output_diff`: Output elevation change raster (Task 5)
+
+
+---
+
+## 📝 License
+
+Created for academic use in the 2024 OOSA final assessment.
+
